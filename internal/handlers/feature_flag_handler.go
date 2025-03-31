@@ -6,13 +6,15 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kashyapkrlucky/ff-go-src/internal/messaging"
 	"github.com/kashyapkrlucky/ff-go-src/internal/models"
 	"github.com/kashyapkrlucky/ff-go-src/internal/repositories"
 )
 
 // FeatureFlagHandler handles API requests
 type FeatureFlagHandler struct {
-	Repo *repositories.FeatureFlagRepo
+	Repo      *repositories.FeatureFlagRepo
+	Publisher *messaging.Publisher
 }
 
 // NewFeatureFlagHandler creates a new handler
@@ -39,6 +41,11 @@ func (h *FeatureFlagHandler) CreateFlag(c *gin.Context) {
 	}
 	if err := h.Repo.Create(flag); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create flag"})
+		return
+	}
+	// Publish the feature flag creation message to RabbitMQ
+	if err := h.Publisher.PublishFlagChange(flag.ID, "created"); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to propagate flag change"})
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "Feature flag created"})

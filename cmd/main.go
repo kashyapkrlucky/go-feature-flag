@@ -9,7 +9,9 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/kashyapkrlucky/ff-go-src/db"
 	"github.com/kashyapkrlucky/ff-go-src/internal/handlers"
+	"github.com/kashyapkrlucky/ff-go-src/internal/messaging"
 	"github.com/kashyapkrlucky/ff-go-src/internal/repositories"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -43,4 +45,23 @@ func main() {
 
 	log.Println("Server is running on port", port)
 	router.Run(":" + port)
+}
+
+func startConsumer() {
+	consumer, err := messaging.NewConsumer()
+	if err != nil {
+		log.Fatalf("Failed to initialize consumer: %v", err)
+	}
+
+	go consumer.ListenForFlagChanges()
+}
+
+// Initialize logger
+func initLogger() (*zap.Logger, error) {
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatalf("Error initializing logger: %v", err)
+		return nil, err
+	}
+	return logger, nil
 }
